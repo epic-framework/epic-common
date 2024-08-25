@@ -1,5 +1,5 @@
 # Epic common &mdash; Useful Common Utilities
-[![Epic-common CI](https://github.com/Cybereason/epic-common/actions/workflows/ci.yml/badge.svg)](https://github.com/Cybereason/epic-common/actions/workflows/ci.yml)
+[![Epic-common CI](https://github.com/epic-framework/epic-common/actions/workflows/ci.yml/badge.svg)](https://github.com/epic-framework/epic-common/actions/workflows/ci.yml)
 
 ## What is it?
 The **epic-common** Python library provides many general useful utilities.
