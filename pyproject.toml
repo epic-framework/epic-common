@@ -1,0 +1,22 @@
+[tool.poetry]
+name = "epic-common"
+version = "1.1.0"
+description = "Useful Common Utilities"
+authors = ["Uri Sternfeld", "Assaf Ben-David", "Yonatan Perry"]
+license = "MIT"
+readme = "README.md"
+repository = "https://github.com/epic-framework/epic-common"
+packages = [{include = "epic"}]
+
+[tool.poetry.dependencies]
+python = "^3.10"
+decorator = "*"
+
+[tool.poetry.group.test.dependencies]
+pytest = "*"
+pytest-cov = "*"
+google-cloud-storage = "*"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
