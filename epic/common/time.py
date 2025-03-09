@@ -1,7 +1,7 @@
 import time
 import signal
-import datetime
 import threading
+import datetime as dt
 
 from decorator import decorate
 from contextlib import contextmanager
@@ -20,12 +20,12 @@ class Timer:
         self.delta = 0
 
     @property
-    def delta(self) -> datetime.timedelta:
+    def delta(self) -> dt.timedelta:
         return self._store.delta
 
     @delta.setter
     def delta(self, value: float):
-        self._store.delta = datetime.timedelta(seconds=value)
+        self._store.delta = dt.timedelta(seconds=value)
 
     def __enter__(self) -> "Timer":
         self._store.reference_time = time.perf_counter()
@@ -133,11 +133,11 @@ class TimeTracker(dict[Any, list]):
         return self.Tracker(self, prefix)
 
 
-Timestamp: TypeAlias = datetime.datetime | datetime.date | str | float | int
+Timestamp: TypeAlias = dt.datetime | dt.date | str | float | int
 TimeFormat: TypeAlias = str | Iterable[str] | None
 
 
-def to_datetime(timestamp: Timestamp, time_format: TimeFormat = None) -> datetime.datetime:
+def to_datetime(timestamp: Timestamp, time_format: TimeFormat = None) -> dt.datetime:
     """
     Convert a wide range of inputs into a datetime.datetime.
 
@@ -158,47 +158,46 @@ def to_datetime(timestamp: Timestamp, time_format: TimeFormat = None) -> datetim
     datetime.datetime
         Converted input.
     """
-    if isinstance(timestamp, datetime.datetime):
-        return timestamp
+    def d2dt(date: dt.date) -> dt.datetime:
+        return dt.datetime.combine(date, dt.time.min)
 
-    def date2datetime(date):
-        return datetime.datetime.combine(date, datetime.time.min)
-
-    if isinstance(timestamp, datetime.date):
-        return date2datetime(timestamp)
-
-    if isinstance(timestamp, str):
-        time_str = timestamp.lower()
-
-        if time_str == 'today':
-            return date2datetime(datetime.date.today())
-
-        if time_str == 'yesterday':
-            return date2datetime(datetime.date.today()) - datetime.timedelta(days=1)
-
-        if time_str == 'now':
-            return datetime.datetime.now()
-
-        if time_format is None:
-            bases = ("%Y{0}%m{0}%d", "%d{0}%m{0}%y")
-            separators = [''] + list('-./')
-            times = [''] + ['{tsep}%H:%M{sec}'.format(tsep=ts, sec=s) for ts in ' T' for s in (':%S', '')]
-            formats = [base.format(sep) + t for base in bases for t in times for sep in separators]
-        else:
-            formats = to_list(time_format)
-
-        for f in formats:
-            try:
-                return datetime.datetime.strptime(timestamp, f)
-            except ValueError:
-                if f == formats[-1]:
-                    raise ValueError("time data '%s' does not match any of %s formats" %
-                                     (timestamp, 'expected' if time_format is None else 'given'))
-
-    if isinstance(timestamp, float | int):
-        return datetime.datetime.fromtimestamp(timestamp)
-
-    raise TypeError("inappropriate timestamp type: " + type(timestamp).__name__)
+    match timestamp:
+        case dt.datetime():
+            return timestamp
+        case dt.date():
+            return d2dt(timestamp)
+        case str():
+            match timestamp.lower():
+                case 'today':
+                    return d2dt(dt.date.today())
+                case 'yesterday':
+                    return d2dt(dt.date.today()) - dt.timedelta(days=1)
+                case 'now':
+                    return dt.datetime.now()
+            if time_format is None:
+                try:
+                    return dt.datetime.fromisoformat(timestamp)
+                except ValueError:
+                    pass
+                bases = ("%Y{0}%m{0}%d", "%d{0}%m{0}%y")
+                separators = [''] + list('-./')
+                times = [''] + ['{tsep}%H:%M{sec}'.format(tsep=ts, sec=s) for ts in ' T' for s in (':%S', '')]
+                formats = [base.format(sep) + t for base in bases for t in times for sep in separators]
+            else:
+                formats = to_list(time_format)
+            for f in formats:
+                try:
+                    return dt.datetime.strptime(timestamp, f)
+                except ValueError:
+                    if f == formats[-1]:
+                        raise ValueError(
+                            f"Input {timestamp!r} does not match any of "
+                            f"{'expected' if time_format is None else 'given'} formats"
+                        )
+        case float() | int():
+            return dt.datetime.fromtimestamp(timestamp)
+        case _:
+            raise TypeError("inappropriate timestamp type: " + type(timestamp).__name__)
 
 
 def to_epoch_time(timestamp: Timestamp, time_format: TimeFormat = None) -> float:
@@ -223,8 +222,8 @@ def to_epoch_time(timestamp: Timestamp, time_format: TimeFormat = None) -> float
     --------
     to_datetime : Convert to datetime.datetime.
     """
-    dt = to_datetime(timestamp, time_format)
-    return time.mktime(dt.timetuple()) + dt.microsecond / 1e6
+    datetime = to_datetime(timestamp, time_format)
+    return time.mktime(datetime.timetuple()) + datetime.microsecond / 1e6
 
 
 # Inspired by http://stackoverflow.com/a/13821695/221917
