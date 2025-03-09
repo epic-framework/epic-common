@@ -16,6 +16,8 @@ R = TypeVar('R', bound=numbers.Real)
 S = TypeVar('S')
 T = TypeVar('T')
 T_co = TypeVar('T_co', covariant=True)
+I = TypeVar("I", bound=Iterable)
+IterableException = TypeVar("IterableException", bound=str | bytes | bytearray | Mapping)
 
 __all__ = [
     'is_iterable', 'to_iterable', 'to_list', 'to_bytes', 'to_number', 'classproperty',
@@ -31,20 +33,33 @@ def is_iterable(obj) -> TypeGuard[Iterable]:
     return isinstance(obj, Iterable) and not isinstance(obj, str | bytes | bytearray)
 
 
-def to_iterable(obj: T | Iterable[T]) -> Iterable[T]:
+@overload
+def to_iterable(obj: IterableException) -> tuple[IterableException]: ...
+@overload
+def to_iterable(obj: I) -> I: ...
+@overload
+def to_iterable(obj: T) -> tuple[T]: ...
+
+def to_iterable(obj):
     """
     Convert an object to an iterable.
 
-    Strings, bytes, bytearrays and Mappings are treated as single objects. For those types of
-    inputs, a tuple of length 1 is returned.
+    Strings, bytes, bytearrays and Mappings are treated as single objects.
     """
     # Mappings need special handling since iterating over them means only iterating over the keys
     if is_iterable(obj) and not isinstance(obj, Mapping):
         return obj
-    return cast(T, obj),
+    return obj,
 
 
-def to_list(obj: T | Iterable[T]) -> list[T]:
+@overload
+def to_list(obj: IterableException) -> list[IterableException]: ...
+@overload
+def to_list(obj: Iterable[T]) -> list[T]: ...
+@overload
+def to_list(obj: T) -> list[T]: ...
+
+def to_list(obj):
     """
     Convert an object to a list.
 
@@ -61,7 +76,6 @@ def to_list(obj: T | Iterable[T]) -> list[T]:
 def to_bytes(obj: B, encoding: str = ..., errors: str = ...) -> B: ...
 @overload
 def to_bytes(obj, encoding: str = ..., errors: str = ...) -> bytes: ...
-
 
 def to_bytes(obj, encoding='utf-8', errors='replace'):
     """
@@ -80,7 +94,6 @@ def to_bytes(obj, encoding='utf-8', errors='replace'):
 def to_number(obj: R) -> R: ...
 @overload
 def to_number(obj) -> numbers.Real: ...
-
 
 def to_number(obj):
     """
@@ -148,7 +161,7 @@ def hash_content(obj) -> int:
     Parameters
     ----------
     obj : object
-        Object to hash.
+        The object to hash.
 
     Returns
     -------
